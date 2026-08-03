@@ -42,7 +42,17 @@ router.post('/register', async (req, res) => {
       expiresAt: new Date(Date.now() + OTP_VALID_MINUTES * 60 * 1000)
     });
 
-    await sendOtpEmail(normalizedEmail, otp);
+    // Try sending OTP email — if it fails, still register the user but report the email error
+    try {
+      await sendOtpEmail(normalizedEmail, otp);
+    } catch (mailErr) {
+      console.error('OTP email send failed:', mailErr.message);
+      return res.status(201).json({
+        msg: 'Account created but we could not send the OTP email. Please use "Resend OTP" on the next page.',
+        email: normalizedEmail,
+        emailError: true
+      });
+    }
 
     res.status(201).json({ msg: 'OTP sent to your email. Please verify to complete registration.', email: normalizedEmail });
   } catch (err) {
